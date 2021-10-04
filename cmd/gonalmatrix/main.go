@@ -25,15 +25,21 @@ func main() {
 	}()
 
 	// Command line arguments.
-	var configptr = flag.String("c", "gonalmatrix.ini", "Config file")
+	var cfgptr = flag.String("c", "gonalmatrix.ini", "Config file")
 	flag.Parse()
 
-	if stat, err := os.Stat(*configptr); err == nil {
+	if stat, err := os.Stat(*cfgptr); err == nil {
 		if stat.IsDir() {
-			varpanic("Not a file: %v", *configptr)
+			varpanic("Not a file: %v", *cfgptr)
 		}
 	} else {
-		varpanic("No such file: %v", *configptr)
+		varpanic("No such file: %v", *cfgptr)
 	}
-	configfile := *configptr
+	cfgfile := *cfgptr
+
+	// Load the config
+	cfg, err := loadConfig(cfgfile)
+	if err != nil {
+		varpanic("Failed to read %v", cfgfile);
+	}
 }
