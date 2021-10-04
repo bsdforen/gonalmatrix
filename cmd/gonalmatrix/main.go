@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 )
@@ -22,4 +23,17 @@ func main() {
 			fmt.Fprintf(os.Stderr, "%v", msg)
 		}
 	}()
+
+	// Command line arguments.
+	var configptr = flag.String("c", "gonalmatrix.ini", "Config file")
+	flag.Parse()
+
+	if stat, err := os.Stat(*configptr); err == nil {
+		if stat.IsDir() {
+			varpanic("Not a file: %v", *configptr)
+		}
+	} else {
+		varpanic("No such file: %v", *configptr)
+	}
+	configfile := *configptr
 }
