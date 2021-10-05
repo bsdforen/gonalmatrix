@@ -62,8 +62,14 @@ func main() {
 	passwd := cfg.Section("global").Key("password").String()
 
 	// Connect to the server...
-	_, err = connectMatrix(homeserver, user, passwd)
+	client, err := connectMatrix(homeserver, user, passwd)
 	if err != nil {
 		varpanic("Couldn't connect to %v", homeserver);
+	}
+
+	// ...and start the event syncer.
+	err = startSyncer(client)
+	if err != nil {
+		varpanic("Couldn't start syncer: %v", err);
 	}
 }
