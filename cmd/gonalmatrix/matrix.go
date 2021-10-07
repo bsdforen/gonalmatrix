@@ -54,9 +54,16 @@ func matrixConnect(homeserver string) error {
 }
 
 func matrixStartSyncer() chan error {
+	// Create syncer and register event handlers.
 	syncer := matrixClient.Syncer.(*mautrix.DefaultSyncer)
 	syncer.OnEventType(event.EventMessage, matrixHandleMessageEvent)
 
+	// Add handler to ignore old events from
+	// before the bot joined the rooms.
+	var oei mautrix.OldEventIgnorer
+	oei.Register(syncer)
+
+	// And start the syncer.
 	ch := make(chan error)
 	go matrixSyncerWrapper(ch)
 	return ch
