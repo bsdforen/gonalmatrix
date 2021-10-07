@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 
 	"maunium.net/go/mautrix"
@@ -21,6 +22,12 @@ func matrixHandleMessageEvent(source mautrix.EventSource, evt *event.Event) {
 	// !ping -> Anwer with 'pong!'.
 	if strings.HasPrefix(content.Body, "!ping") {
 		matrixClient.SendText(evt.RoomID, "pong!")
+	}
+
+	// !version -> Answer with the version numer.
+	if strings.HasPrefix(content.Body, "!version") {
+		version := fmt.Sprintf("gonalmatrix v%v.%v.%v, © 2021 BSDForen.de", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH)
+		matrixClient.SendText(evt.RoomID, version)
 	}
 }
 
