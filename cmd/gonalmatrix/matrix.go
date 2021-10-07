@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"strings"
 
 	"maunium.net/go/mautrix"
@@ -10,46 +9,55 @@ import (
 
 // ----
 
-// TODO: Should be done with a go routine and channel.
+// Client instance, representing the server connection.
 var matrixClient *mautrix.Client
 
 // ----
 
-func handleMaxtrixEvents(source mautrix.EventSource, event *event.Event) {
-	bodyText := event.Content.Raw["body"].(string)
-	roomID := event.RoomID
+func matrixHandleMessageEvent(source mautrix.EventSource, evt *event.Event) {
+	content := evt.Content.AsMessage()
 
 	// !ping -> Anwer with 'pong!'.
-	if strings.HasPrefix(bodyText, "!ping") {
-		matrixClient.SendText(roomID, "pong!")
+	if strings.HasPrefix(content.Body, "!ping") {
+		matrixClient.SendText(evt.RoomID, "pong!")
 	}
 }
 
 // ----
 
-func connectMatrix(homeserver string, user string, passwd string) (*mautrix.Client, error) {
-	fmt.Printf("Connecting to %v\n", homeserver)
-	client, err := mautrix.NewClient(homeserver, "", "")
-	if err != nil {
-		return nil, err
-	}
-
-	fmt.Printf("Authenticating as %v\n", user)
-	_, err = client.Login(&mautrix.ReqLogin{Type: "m.login.password", Identifier: mautrix.UserIdentifier{Type: mautrix.IdentifierTypeUser, User: user}, Password: passwd, StoreCredentials: true})
-	if err != nil {
-		return nil, err
-	}
-
-	return client, err
+func matrixSyncerWrapper(ch chan error) {
+	err := matrixClient.Sync()
+	ch <- err
 }
 
-func startSyncer(client *mautrix.Client) (error) {
-	syncer := client.Syncer.(*mautrix.DefaultSyncer)
-	syncer.OnEventType(event.EventMessage, handleMaxtrixEvents)
+// ----
 
-	// TODO: Should be go routines and a channel!
-	matrixClient = client
-	err := client.Sync()
-
+func matrixAuthenticate(user string, passwd string) error {
+	req := mautrix.ReqLogin{
+		Type:             "m.login.password",
+		Identifier:       mautrix.UserIdentifier{Type: mautrix.IdentifierTypeUser, User: user},
+		Password:         passwd,
+		StoreCredentials: true,
+	}
+	_, err := matrixClient.Login(&req)
 	return err
+}
+
+func matrixConnect(homeserver string) error {
+	client, err := mautrix.NewClient(homeserver, "", "")
+	if err != nil {
+		matrixClient = nil
+	} else {
+		matrixClient = client
+	}
+	return err
+}
+
+func matrixStartSyncer() chan error {
+	syncer := matrixClient.Syncer.(*mautrix.DefaultSyncer)
+	syncer.OnEventType(event.EventMessage, matrixHandleMessageEvent)
+
+	ch := make(chan error)
+	go matrixSyncerWrapper(ch)
+	return ch
 }

@@ -11,6 +11,7 @@ import (
 // Version number.
 const VERSION_MAJOR int = 0
 const VERSION_MINOR int = 1
+const VERSION_PATCH int = 0
 
 // ----
 
@@ -32,44 +33,67 @@ func main() {
 
 	// Command line arguments.
 	var cfgptr = flag.String("c", "gonalmatrix.ini", "Config file")
-	var verptr = flag.Bool("v", false, "Print version number")
+	var verptr = flag.Bool("v", false, "Print version number and exit")
 	flag.Parse()
 
 	if *verptr {
-		fmt.Printf("gonalmatrix v%v.%v\n", VERSION_MAJOR, VERSION_MINOR)
+		fmt.Printf("gonalmatrix v%v.%v.%v\n", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH)
 		os.Exit(0)
 	}
 
 	if stat, err := os.Stat(*cfgptr); err == nil {
 		if stat.IsDir() {
-			varpanic("Not a file: %v", *cfgptr)
+			varpanic("stat %v: not a file", *cfgptr)
 		}
 	} else {
-		varpanic("No such file: %v", *cfgptr)
+		varpanic("%v", err)
 	}
 	cfgfile := *cfgptr
-	
+
 	// Print startup message
-	fmt.Printf("This is gonalmatrix v%v.%v\n", VERSION_MAJOR, VERSION_MINOR)
+	fmt.Printf("This is gonalmatrix v%v.%v.%v\n", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH)
+	fmt.Printf("--------------------------\n")
 
 	// Load the config
-	cfg, err := loadConfig(cfgfile)
+	fmt.Printf("Loading configfile %v: ", cfgfile)
+	cfg, err := configLoad(cfgfile)
 	if err != nil {
-		varpanic("Failed to read %v", cfgfile);
+		fmt.Printf("[failed]\n")
+		varpanic("%v", err)
 	}
-	homeserver := cfg.Section("global").Key("homeserver").String()
-	user := cfg.Section("global").Key("username").String()
-	passwd := cfg.Section("global").Key("password").String()
+	fmt.Printf("[okay]\n")
+
+	homeserver := cfg.Section("matrix").Key("homeserver").String()
+	user := cfg.Section("matrix").Key("username").String()
+	passwd := cfg.Section("matrix").Key("password").String()
 
 	// Connect to the server...
-	client, err := connectMatrix(homeserver, user, passwd)
+	fmt.Printf("Connecting to %v: ", homeserver)
+	err = matrixConnect(homeserver)
 	if err != nil {
-		varpanic("Couldn't connect to %v", homeserver);
+		fmt.Printf("[failed]\n")
+		varpanic("%v", err)
 	}
+	fmt.Printf("[okay]\n")
 
-	// ...and start the event syncer.
-	err = startSyncer(client)
+	// ...authenticate...
+	fmt.Printf("Authenticating as %v: ", user)
+	err = matrixAuthenticate(user, passwd)
 	if err != nil {
-		varpanic("Couldn't start syncer: %v", err);
+		fmt.Printf("[failed]\n")
+		varpanic("%v", err)
+	}
+	fmt.Printf("[okay]\n")
+
+	// ...start the event syncer...
+	fmt.Printf("Starting syncer: ")
+	ch := matrixStartSyncer()
+	fmt.Printf("[okay]\n")
+
+	// ...and wait forever for the syncer to finish.
+	fmt.Printf("Waiting for events:\n")
+	err = <-ch
+	if err != nil {
+		varpanic("%v", err)
 	}
 }
