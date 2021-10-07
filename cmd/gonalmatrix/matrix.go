@@ -14,6 +14,7 @@ var matrixClient *mautrix.Client
 
 // ----
 
+// Handles message events.
 func matrixHandleMessageEvent(source mautrix.EventSource, evt *event.Event) {
 	content := evt.Content.AsMessage()
 
@@ -25,6 +26,8 @@ func matrixHandleMessageEvent(source mautrix.EventSource, evt *event.Event) {
 
 // ----
 
+// Wrapper to start the syncer as goroutine. Must be
+// called after the server connection was established!
 func matrixSyncerWrapper(ch chan error) {
 	err := matrixClient.Sync()
 	ch <- err
@@ -32,6 +35,7 @@ func matrixSyncerWrapper(ch chan error) {
 
 // ----
 
+// Authenticate against the matrix server.
 func matrixAuthenticate(user string, passwd string) error {
 	req := mautrix.ReqLogin{
 		Type:             "m.login.password",
@@ -43,6 +47,7 @@ func matrixAuthenticate(user string, passwd string) error {
 	return err
 }
 
+// Connect to the given matrix home server.
 func matrixConnect(homeserver string) error {
 	client, err := mautrix.NewClient(homeserver, "", "")
 	if err != nil {
@@ -53,6 +58,8 @@ func matrixConnect(homeserver string) error {
 	return err
 }
 
+// Starts the syncer as gtoroutine.
+// Returns an error channel to it.
 func matrixStartSyncer() chan error {
 	// Create syncer and register event handlers.
 	syncer := matrixClient.Syncer.(*mautrix.DefaultSyncer)
