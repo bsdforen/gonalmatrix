@@ -63,9 +63,24 @@ func main() {
 	}
 	fmt.Printf("[okay]\n")
 
-	homeserver := cfg.Section("matrix").Key("homeserver").String()
-	user := cfg.Section("matrix").Key("username").String()
-	passwd := cfg.Section("matrix").Key("password").String()
+	var homeserver string
+	if cfg.Section("matrix").HasKey("homeserver") {
+		homeserver = cfg.Section("matrix").Key("homeserver").String()
+	} else {
+		varpanic("missing [matrix][homeserver] key in config")
+	}
+	var user string
+	if cfg.Section("matrix").HasKey("username") {
+		user = cfg.Section("matrix").Key("username").String()
+	} else {
+		varpanic("missing [matrix][username] key in config")
+	}
+	var passwd string
+	if cfg.Section("matrix").HasKey("password") {
+		passwd = cfg.Section("matrix").Key("password").String()
+	} else {
+		varpanic("missing [matrix][password] key in config")
+	}
 
 	// Connect to the server...
 	fmt.Printf("Connecting to %v: ", homeserver)
