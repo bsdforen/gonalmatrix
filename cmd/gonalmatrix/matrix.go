@@ -65,7 +65,7 @@ func matrixConnect(homeserver string) error {
 	return err
 }
 
-// Starts the syncer as gtoroutine.
+// Starts the syncer as goroutine.
 // Returns an error channel to it.
 func matrixStartSyncer() chan error {
 	// Create syncer and register event handlers.
@@ -81,4 +81,9 @@ func matrixStartSyncer() chan error {
 	ch := make(chan error)
 	go matrixSyncerWrapper(ch)
 	return ch
+}
+
+// Stops the syncer.
+func matrixStopSyncer() {
+	matrixClient.StopSync()
 }

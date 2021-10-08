@@ -4,6 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 )
 
 // ----
@@ -19,6 +21,21 @@ const VERSION_PATCH int = 0
 func varpanic(format string, args ...interface{}) {
 	msg := fmt.Sprintf("ERROR: "+format+"\n", args...)
 	panic(msg)
+}
+
+// ----
+
+// Register signal handlers.
+func registerSignalHandlers() {
+	// SIGINT, SIGTERM.
+	go func() {
+		sig := make(chan os.Signal, 1)
+		signal.Notify(sig, syscall.SIGTERM, syscall.SIGINT)
+		<-sig
+
+		fmt.Printf("Signal received, asking syncer to stop...")
+		matrixStopSyncer()
+	}()
 }
 
 // ----
@@ -104,6 +121,9 @@ func main() {
 	fmt.Printf("Starting syncer: ")
 	ch := matrixStartSyncer()
 	fmt.Printf("[okay]\n")
+
+	// ...listen for signals...
+	registerSignalHandlers()
 
 	// ...and wait forever for the syncer to finish.
 	fmt.Printf("Waiting for events:\n")
