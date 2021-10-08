@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/event"
@@ -15,17 +16,26 @@ var matrixClient *mautrix.Client
 
 // ----
 
+// Wrapper to print nicely formated actions to stdout.
+func matrixPrintAction(evt *event.Event, action string) {
+	now := time.Now()
+	timestr := now.Format("2006/01/02 03:04:05")
+	fmt.Printf(" * [%v] %v -> %v: %v\n", timestr, evt.RoomID, evt.Sender, action)
+}
+
 // Handles message events.
 func matrixHandleMessageEvent(source mautrix.EventSource, evt *event.Event) {
 	content := evt.Content.AsMessage()
 
 	// !ping -> Anwer with 'pong!'.
 	if strings.HasPrefix(content.Body, "!ping") {
+		matrixPrintAction(evt, "!ping")
 		matrixClient.SendText(evt.RoomID, "pong!")
 	}
 
 	// !version -> Answer with the version numer.
 	if strings.HasPrefix(content.Body, "!version") {
+		matrixPrintAction(evt, "!version")
 		version := fmt.Sprintf("gonalmatrix v%v.%v.%v, © 2021 BSDForen.de", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH)
 		matrixClient.SendText(evt.RoomID, version)
 	}
