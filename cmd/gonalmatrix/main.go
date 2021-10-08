@@ -98,6 +98,12 @@ func main() {
 	} else {
 		varpanic("missing [matrix][password] key in config")
 	}
+	var loggerfile string
+	if cfg.Section("logger").HasKey("file") {
+		loggerfile = cfg.Section("logger").Key("file").String()
+	} else {
+		varpanic("missing [logger][file] key in config")
+	}
 
 	// Connect to the server...
 	fmt.Printf("Connecting to %v: ", homeserver)
@@ -126,6 +132,17 @@ func main() {
 
 	// ...listen for signals...
 	registerSignalHandlers()
+
+	// ...setup the event logger...
+	fmt.Printf("Starting event logger: ")
+	loggerhandle, err := os.OpenFile(loggerfile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	if err != nil {
+		fmt.Printf("[failed]\n")
+		varpanic("%v", err)
+	}
+	matrixSetupLogger(loggerhandle)
+	fmt.Printf("[okay]\n")
+	defer loggerhandle.Close()
 
 	// ...and wait forever for the syncer to finish.
 	fmt.Printf("Waiting for events:\n")

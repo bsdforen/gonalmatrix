@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"log"
 	"strings"
 	"time"
 
@@ -14,27 +16,40 @@ import (
 // Client instance, representing the server connection.
 var matrixClient *mautrix.Client
 
+// Logger instance, logs events into a file.
+var matrixLogger *log.Logger
+
 // ----
+
+// Wrapper to log message events to a file.
+func matrixLogMessageEvent(evt *event.Event, message string) {
+	timestr := time.Now().Format("2006/01/02 03:04:05")
+	matrixLogger.Printf("[%v] %v -> %v: %v\n", timestr, evt.RoomID, evt.Sender, message)
+}
 
 // Wrapper to print nicely formated actions to stdout.
 func matrixPrintAction(evt *event.Event, action string) {
-	now := time.Now()
-	timestr := now.Format("2006/01/02 03:04:05")
+	timestr := time.Now().Format("2006/01/02 03:04:05")
 	fmt.Printf(" * [%v] %v -> %v: %v\n", timestr, evt.RoomID, evt.Sender, action)
 }
 
 // Handles message events.
 func matrixHandleMessageEvent(source mautrix.EventSource, evt *event.Event) {
-	content := evt.Content.AsMessage()
+	message := evt.Content.AsMessage().Body
+
+	// Log everything that has a body.
+	if len(message) != 0 {
+		matrixLogMessageEvent(evt, message)
+	}
 
 	// !ping -> Anwer with 'pong!'.
-	if strings.HasPrefix(content.Body, "!ping") {
+	if strings.HasPrefix(message, "!ping") {
 		matrixPrintAction(evt, "!ping")
 		matrixClient.SendText(evt.RoomID, "pong!")
 	}
 
 	// !version -> Answer with the version numer.
-	if strings.HasPrefix(content.Body, "!version") {
+	if strings.HasPrefix(message, "!version") {
 		matrixPrintAction(evt, "!version")
 		version := fmt.Sprintf("gonalmatrix v%v.%v.%v, © 2021 BSDForen.de", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH)
 		matrixClient.SendText(evt.RoomID, version)
@@ -83,6 +98,11 @@ func matrixConnect(homeserver string) error {
 		matrixClient = client
 	}
 	return err
+}
+
+// Setup the event logger.
+func matrixSetupLogger(handle io.Writer) {
+	matrixLogger = log.New(handle, "", 0)
 }
 
 // Starts the syncer as goroutine.
