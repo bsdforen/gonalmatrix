@@ -116,11 +116,13 @@ func main() {
 		varpanic("%v", err)
 	}
 	fmt.Printf("[okay]\n")
+	defer matrixDeauthenticate()
 
 	// ...start the event syncer...
 	fmt.Printf("Starting syncer: ")
 	ch := matrixStartSyncer()
 	fmt.Printf("[okay]\n")
+	defer close(ch)
 
 	// ...listen for signals...
 	registerSignalHandlers()

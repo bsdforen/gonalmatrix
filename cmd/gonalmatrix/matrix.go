@@ -54,6 +54,16 @@ func matrixAuthenticate(user string, passwd string) error {
 	return err
 }
 
+// Deauthenticate from the matrix server.
+func matrixDeauthenticate() error {
+	_, err := matrixClient.Logout()
+	if err != nil {
+		return err
+	}
+	matrixClient.ClearCredentials()
+	return err
+}
+
 // Connect to the given matrix home server.
 func matrixConnect(homeserver string) error {
 	client, err := mautrix.NewClient(homeserver, "", "")
