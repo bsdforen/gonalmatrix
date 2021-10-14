@@ -104,6 +104,22 @@ func main() {
 	} else {
 		varpanic("missing [logger][file] key in config")
 	}
+	var sqlitefile string
+	if cfg.Section("sqlite").HasKey("file") {
+		sqlitefile = cfg.Section("sqlite").Key("file").String()
+	} else {
+		varpanic("missing [sqlite][file] key in config")
+	}
+
+	// Connect to the database.
+	fmt.Printf("Connecting to sqlite3 database %v: ", sqlitefile)
+	err = sqliteConnect(sqlitefile)
+	if err != nil {
+		fmt.Printf("[failed]\n")
+		varpanic("%v", err)
+	}
+	fmt.Printf("[okay]\n")
+	defer sqliteDisconnect()
 
 	// Connect to the server...
 	fmt.Printf("Connecting to %v: ", homeserver)

@@ -33,6 +33,12 @@ func matrixPrintAction(evt *event.Event, action string) {
 	fmt.Printf(" * [%v] %v -> %v: %v\n", timestr, evt.RoomID, evt.Sender, action)
 }
 
+// Wrapper to print an error to stdout.
+func matrixPrintError(evt *event.Event, err error) {
+	timestr := time.Now().Format("2006/01/02 03:04:05")
+	fmt.Printf(" * [%v] %v -> %v: %v\n", timestr, evt.RoomID, evt.Sender, err)
+}
+
 // Handles message events.
 func matrixHandleMessageEvent(source mautrix.EventSource, evt *event.Event) {
 	message := evt.Content.AsMessage().Body
@@ -40,6 +46,22 @@ func matrixHandleMessageEvent(source mautrix.EventSource, evt *event.Event) {
 	// Log everything that has a body.
 	if len(message) != 0 {
 		matrixLogMessageEvent(evt, message)
+	}
+
+	// !info -> Answer with factoid.
+	if strings.HasPrefix(message, "!info") {
+		split := strings.SplitN(message, " ", 2)
+
+		if len(split) == 1 {
+			// No argument -> random factoid.
+			matrixPrintAction(evt, "!info")
+
+			fact, err := sqliteFactoidGetRandom()
+			if err != nil {
+				matrixPrintError(evt, err)
+			}
+			matrixClient.SendText(evt.RoomID, fact)
+		}
 	}
 
 	// !ping -> Anwer with 'pong!'.
