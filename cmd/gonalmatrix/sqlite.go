@@ -33,6 +33,12 @@ func sqliteFactoidForget(key string) error {
 	return err
 }
 
+// Deletes a single info string for the given factoid.
+func sqliteFactoidForgetValue(key string, value string) error {
+	_, err := sqliteCon.Exec("DELETE FROM factoids WHERE factoid_key = ? AND factoid_value = ?;", key, value)
+	return err
+}
+
 // Returns a complete info string for the given key.
 func sqliteFactoidGetForKey(key string) (string, error) {
 	// Query...

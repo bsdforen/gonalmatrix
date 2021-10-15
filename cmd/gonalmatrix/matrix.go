@@ -71,6 +71,23 @@ func matrixHandleMessageEvent(source mautrix.EventSource, evt *event.Event) {
 				} else {
 					matrixClient.SendText(evt.RoomID, fmt.Sprintf("forgot everything i knew about '%v'", key))
 				}
+			} else if len(keyvalue) == 2 {
+				// User has given a key and a value -> remove part.
+				key := strings.Trim(keyvalue[0], " ")
+				value := strings.Trim(keyvalue[1], " ")
+				matrixPrintAction(evt, fmt.Sprintf("!forget %v = %v", key, value))
+
+				// The key and the value must not be empty.
+				if len(key) == 0 || len(value) == 0 {
+					matrixClient.SendText(evt.RoomID, "try: '!forget foo = bar' or '!forget foo'")
+				} else {
+					err := sqliteFactoidForgetValue(key, value)
+					if err != nil {
+						matrixPrintError(evt, err)
+					} else {
+						matrixClient.SendText(evt.RoomID, fmt.Sprintf("forgot %v = %v", key, value))
+					}
+				}
 			}
 		}
 	}
