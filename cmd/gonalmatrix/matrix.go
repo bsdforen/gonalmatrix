@@ -61,6 +61,16 @@ func matrixHandleMessageEvent(source mautrix.EventSource, evt *event.Event) {
 				matrixPrintError(evt, err)
 			}
 			matrixClient.SendText(evt.RoomID, fact)
+		} else if len(split) == 2 {
+			// Argument -> all factoids with that key.
+			key := strings.Trim(split[1], " ")
+			matrixPrintAction(evt, fmt.Sprintf("!info %v", key))
+
+			fact, err := sqliteFactoidGetForKey(key)
+			if err != nil {
+				matrixPrintError(evt, err)
+			}
+			matrixClient.SendText(evt.RoomID, fact)
 		}
 	}
 

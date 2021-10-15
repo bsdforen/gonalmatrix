@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -26,6 +27,58 @@ var sqliteCon *sql.DB
 
 // ----
 
+// Returns a complete info string for the given key.
+func sqliteFactoidGetForKey(key string) (string, error) {
+	// Query...
+	rows, err := sqliteCon.Query("SELECT * FROM factoids WHERE factoid_key = ?", key)
+	if err != nil {
+		return "", err
+	}
+	defer rows.Close()
+
+	// ...prepare string builder...
+	var info strings.Builder
+	info.WriteString(key)
+	info.WriteString(" =")
+
+	first := true
+	for rows.Next() {
+		// ...extract...
+		var fact Factoid
+		err = rows.Scan(&fact.id, &fact.key, &fact.text, &fact.nick, &fact.channel, &fact.date, &fact.locked)
+		if err != nil {
+			return "", err
+		}
+
+		// ...parse time...
+		date, err := time.Parse("2006-01-02 15:04:05", fact.date)
+		if err != nil {
+			date = time.Now()
+		}
+
+		// ...format it...
+		formated := fmt.Sprintf(" %v [%v, %v]", fact.text, fact.nick, date.Format("02. Jan 2006"))
+
+		// ...print seperator if necessary...
+		if first == false {
+			info.WriteString(" ||")
+		} else {
+			first = false
+		}
+
+		// and at it to the info string.
+		info.WriteString(formated)
+	}
+
+	if first == true {
+		// Result was empty.
+		return "Huh? No idea.", err
+	} else {
+		// We've got a result.
+		return info.String(), err
+	}
+}
+
 // Returns one random info string.
 func sqliteFactoidGetRandom() (string, error) {
 	// Query...
@@ -33,6 +86,7 @@ func sqliteFactoidGetRandom() (string, error) {
 	if err != nil {
 		return "", err
 	}
+	defer rows.Close()
 	rows.Next()
 
 	// ...extract...
@@ -41,7 +95,6 @@ func sqliteFactoidGetRandom() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	rows.Close()
 
 	// ...parse time...
 	date, err := time.Parse("2006-01-02 15:04:05", fact.date)
