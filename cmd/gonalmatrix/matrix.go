@@ -48,6 +48,33 @@ func matrixHandleMessageEvent(source mautrix.EventSource, evt *event.Event) {
 		matrixLogMessageEvent(evt, message)
 	}
 
+	// !forget -> Delete a factoid.
+	if strings.HasPrefix(message, "!forget") {
+		split := strings.SplitN(message, " ", 2)
+
+		if len(split) == 1 {
+			// No argument -> error string.
+			matrixPrintAction(evt, "!forget")
+			matrixClient.SendText(evt.RoomID, "try: '!forget foo = bar' or '!forget foo'")
+		} else if len(split) == 2 {
+			// Argument -> Either remove part or everything.
+			keyvalue := strings.SplitN(split[1], "=", 2)
+
+			if len(keyvalue) == 1 {
+				// User has given only the key -> remove everything.
+				key := strings.Trim(keyvalue[0], " ")
+				matrixPrintAction(evt, fmt.Sprintf("!forget %v", key))
+
+				err := sqliteFactoidForget(key)
+				if err != nil {
+					matrixPrintError(evt, err)
+				} else {
+					matrixClient.SendText(evt.RoomID, fmt.Sprintf("forgot everything i knew about '%v'", key))
+				}
+			}
+		}
+	}
+
 	// !info -> Answer with factoid.
 	if strings.HasPrefix(message, "!info") {
 		split := strings.SplitN(message, " ", 2)

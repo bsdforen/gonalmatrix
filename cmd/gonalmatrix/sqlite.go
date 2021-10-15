@@ -27,6 +27,12 @@ var sqliteCon *sql.DB
 
 // ----
 
+// Deletes all info strings for a given factoid.
+func sqliteFactoidForget(key string) error {
+	_, err := sqliteCon.Exec("DELETE FROM factoids WHERE factoid_key = ?;", key)
+	return err
+}
+
 // Returns a complete info string for the given key.
 func sqliteFactoidGetForKey(key string) (string, error) {
 	// Query...
