@@ -59,8 +59,9 @@ func matrixHandleMessageEvent(source mautrix.EventSource, evt *event.Event) {
 			fact, err := sqliteFactoidGetRandom()
 			if err != nil {
 				matrixPrintError(evt, err)
+			} else {
+				matrixClient.SendText(evt.RoomID, fact)
 			}
-			matrixClient.SendText(evt.RoomID, fact)
 		} else if len(split) == 2 {
 			// Argument -> all factoids with that key.
 			key := strings.Trim(split[1], " ")
@@ -69,8 +70,47 @@ func matrixHandleMessageEvent(source mautrix.EventSource, evt *event.Event) {
 			fact, err := sqliteFactoidGetForKey(key)
 			if err != nil {
 				matrixPrintError(evt, err)
+			} else {
+				matrixClient.SendText(evt.RoomID, fact)
 			}
-			matrixClient.SendText(evt.RoomID, fact)
+		}
+	}
+
+	// !learn -> Save a factoid.
+	if strings.HasPrefix(message, "!learn") {
+		split := strings.SplitN(message, " ", 2)
+
+		if len(split) == 1 {
+			// No argument -> error string.
+			matrixPrintAction(evt, "!learn")
+			matrixClient.SendText(evt.RoomID, "try: '!learn foo = bar'")
+		} else if len(split) == 2 {
+			// Argument -> save that factoid.
+			keyvalue := strings.SplitN(split[1], "=", 2)
+
+			if len(keyvalue) == 1 {
+				// User has given a key but no value.
+				key := strings.Trim(keyvalue[0], " ")
+				matrixPrintAction(evt, fmt.Sprintf("!learn %v", key))
+				matrixClient.SendText(evt.RoomID, "try: '!learn foo = bar'")
+			} else if len(keyvalue) == 2 {
+				// User has given a key and a value.
+				key := strings.Trim(keyvalue[0], " ")
+				value := strings.Trim(keyvalue[1], " ")
+				matrixPrintAction(evt, fmt.Sprintf("!learn %v = %v", key, value))
+
+				// The key and the value must not be empty.
+				if len(key) == 0 || len(value) == 0 {
+					matrixClient.SendText(evt.RoomID, "try: '!learn foo = bar'")
+				} else {
+					err := sqliteFactoidSet(key, value, evt.Sender.String(), evt.RoomID.String())
+					if err != nil {
+						matrixPrintError(evt, err)
+					} else {
+						matrixClient.SendText(evt.RoomID, fmt.Sprintf("Okay, learned %v = %v", key, value))
+					}
+				}
+			}
 		}
 	}
 

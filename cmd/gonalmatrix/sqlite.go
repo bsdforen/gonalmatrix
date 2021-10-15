@@ -107,6 +107,14 @@ func sqliteFactoidGetRandom() (string, error) {
 	return formated, err
 }
 
+// Saves an info string for the given key.
+func sqliteFactoidSet(key string, info string, author string, room string) error {
+	_, err := sqliteCon.Exec(
+		"INSERT INTO factoids (factoid_key, factoid_value, factoid_author, factoid_channel, factoid_timestamp, factoid_locked) VALUES  (?, ?, ?, ?, strftime('%Y-%m-%d %H:%M:%S','now'), '0');",
+		key, info, author, room)
+	return err
+}
+
 // ----
 
 // Connects to a SQlite database.
