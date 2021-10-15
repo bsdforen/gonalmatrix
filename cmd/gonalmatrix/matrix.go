@@ -49,7 +49,7 @@ func matrixHandleMessageEvent(source mautrix.EventSource, evt *event.Event) {
 	}
 
 	// !forget -> Delete a factoid.
-	if strings.HasPrefix(message, "!forget") {
+	if strings.HasPrefix(strings.ToLower(message), "!forget") {
 		split := strings.SplitN(message, " ", 2)
 
 		if len(split) == 1 {
@@ -63,6 +63,7 @@ func matrixHandleMessageEvent(source mautrix.EventSource, evt *event.Event) {
 			if len(keyvalue) == 1 {
 				// User has given only the key -> remove everything.
 				key := strings.Trim(keyvalue[0], " ")
+				key = strings.ToLower(key)
 				matrixPrintAction(evt, fmt.Sprintf("!forget %v", key))
 
 				err := sqliteFactoidForget(key)
@@ -74,6 +75,7 @@ func matrixHandleMessageEvent(source mautrix.EventSource, evt *event.Event) {
 			} else if len(keyvalue) == 2 {
 				// User has given a key and a value -> remove part.
 				key := strings.Trim(keyvalue[0], " ")
+				key = strings.ToLower(key)
 				value := strings.Trim(keyvalue[1], " ")
 				matrixPrintAction(evt, fmt.Sprintf("!forget %v = %v", key, value))
 
@@ -93,7 +95,7 @@ func matrixHandleMessageEvent(source mautrix.EventSource, evt *event.Event) {
 	}
 
 	// !info -> Answer with factoid.
-	if strings.HasPrefix(message, "!info") {
+	if strings.HasPrefix(strings.ToLower(message), "!info") {
 		split := strings.SplitN(message, " ", 2)
 
 		if len(split) == 1 {
@@ -109,6 +111,7 @@ func matrixHandleMessageEvent(source mautrix.EventSource, evt *event.Event) {
 		} else if len(split) == 2 {
 			// Argument -> all factoids with that key.
 			key := strings.Trim(split[1], " ")
+			key = strings.ToLower(key)
 			matrixPrintAction(evt, fmt.Sprintf("!info %v", key))
 
 			fact, err := sqliteFactoidGetForKey(key)
@@ -121,7 +124,7 @@ func matrixHandleMessageEvent(source mautrix.EventSource, evt *event.Event) {
 	}
 
 	// !learn -> Save a factoid.
-	if strings.HasPrefix(message, "!learn") {
+	if strings.HasPrefix(strings.ToLower(message), "!learn") {
 		split := strings.SplitN(message, " ", 2)
 
 		if len(split) == 1 {
@@ -135,11 +138,13 @@ func matrixHandleMessageEvent(source mautrix.EventSource, evt *event.Event) {
 			if len(keyvalue) == 1 {
 				// User has given a key but no value.
 				key := strings.Trim(keyvalue[0], " ")
+				key = strings.ToLower(key)
 				matrixPrintAction(evt, fmt.Sprintf("!learn %v", key))
 				matrixClient.SendText(evt.RoomID, "try: '!learn foo = bar'")
 			} else if len(keyvalue) == 2 {
 				// User has given a key and a value.
 				key := strings.Trim(keyvalue[0], " ")
+				key = strings.ToLower(key)
 				value := strings.Trim(keyvalue[1], " ")
 				matrixPrintAction(evt, fmt.Sprintf("!learn %v = %v", key, value))
 
@@ -159,13 +164,13 @@ func matrixHandleMessageEvent(source mautrix.EventSource, evt *event.Event) {
 	}
 
 	// !ping -> Anwer with 'pong!'.
-	if strings.HasPrefix(message, "!ping") {
+	if strings.HasPrefix(strings.ToLower(message), "!ping") {
 		matrixPrintAction(evt, "!ping")
 		matrixClient.SendText(evt.RoomID, "pong!")
 	}
 
 	// !version -> Answer with the version numer.
-	if strings.HasPrefix(message, "!version") {
+	if strings.HasPrefix(strings.ToLower(message), "!version") {
 		matrixPrintAction(evt, "!version")
 		version := fmt.Sprintf("gonalmatrix v%v.%v.%v, © 2021 BSDForen.de", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH)
 		matrixClient.SendText(evt.RoomID, version)
