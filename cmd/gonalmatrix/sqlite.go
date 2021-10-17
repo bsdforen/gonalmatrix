@@ -13,13 +13,12 @@ import (
 
 // Holds one factoid.
 type Factoid struct {
-	id      int
-	key     string
-	text    string
-	nick    string
-	channel string
-	date    string
-	locked  bool
+	id    int
+	key   string
+	value string
+	nick  string
+	room  string
+	date  time.Time
 }
 
 // Our sqlite instance.
@@ -29,20 +28,20 @@ var sqliteCon *sql.DB
 
 // Deletes all info strings for a given factoid.
 func sqliteFactoidForget(key string) error {
-	_, err := sqliteCon.Exec("DELETE FROM factoids WHERE factoid_key = ?;", key)
+	_, err := sqliteCon.Exec("DELETE FROM factoids WHERE key = ?;", key)
 	return err
 }
 
 // Deletes a single info string for the given factoid.
 func sqliteFactoidForgetValue(key string, value string) error {
-	_, err := sqliteCon.Exec("DELETE FROM factoids WHERE factoid_key = ? AND factoid_value = ?;", key, value)
+	_, err := sqliteCon.Exec("DELETE FROM factoids WHERE key = ? AND value = ?;", key, value)
 	return err
 }
 
 // Returns a complete info string for the given key.
 func sqliteFactoidGetForKey(key string) (string, error) {
 	// Query...
-	rows, err := sqliteCon.Query("SELECT * FROM factoids WHERE factoid_key = ?", key)
+	rows, err := sqliteCon.Query("SELECT * FROM factoids WHERE key = ?", key)
 	if err != nil {
 		return "", err
 	}
@@ -57,19 +56,13 @@ func sqliteFactoidGetForKey(key string) (string, error) {
 	for rows.Next() {
 		// ...extract...
 		var fact Factoid
-		err = rows.Scan(&fact.id, &fact.key, &fact.text, &fact.nick, &fact.channel, &fact.date, &fact.locked)
+		err = rows.Scan(&fact.id, &fact.key, &fact.value, &fact.nick, &fact.room, &fact.date)
 		if err != nil {
 			return "", err
 		}
 
-		// ...parse time...
-		date, err := time.Parse("2006-01-02 15:04:05", fact.date)
-		if err != nil {
-			date = time.Now()
-		}
-
 		// ...format it...
-		formated := fmt.Sprintf(" %v [%v, %v]", fact.text, fact.nick, date.Format("02. Jan 2006"))
+		formated := fmt.Sprintf(" %v [%v, %v]", fact.value, fact.nick, fact.date.Format("02. Jan 2006"))
 
 		// ...print seperator if necessary...
 		if first == false {
@@ -103,27 +96,21 @@ func sqliteFactoidGetRandom() (string, error) {
 
 	// ...extract...
 	var fact Factoid
-	err = rows.Scan(&fact.id, &fact.key, &fact.text, &fact.nick, &fact.channel, &fact.date, &fact.locked)
+	err = rows.Scan(&fact.id, &fact.key, &fact.value, &fact.nick, &fact.room, &fact.date)
 	if err != nil {
 		return "", err
 	}
 
-	// ...parse time...
-	date, err := time.Parse("2006-01-02 15:04:05", fact.date)
-	if err != nil {
-		date = time.Now()
-	}
-
 	// ...and format it.
-	formated := fmt.Sprintf("%v = %v [%v, %v]", fact.key, fact.text, fact.nick, date.Format("02. Jan 2006"))
+	formated := fmt.Sprintf("%v = %v [%v, %v]", fact.key, fact.value, fact.nick, fact.date.Format("02. Jan 2006"))
 	return formated, err
 }
 
 // Saves an info string for the given key.
-func sqliteFactoidSet(key string, info string, author string, room string) error {
+func sqliteFactoidSet(key string, info string, nick string, room string) error {
 	_, err := sqliteCon.Exec(
-		"INSERT INTO factoids (factoid_key, factoid_value, factoid_author, factoid_channel, factoid_timestamp, factoid_locked) VALUES  (?, ?, ?, ?, strftime('%Y-%m-%d %H:%M:%S','now'), '0');",
-		key, info, author, room)
+		"INSERT INTO factoids (key, value, nick, room, timestamp) VALUES  (?, ?, ?, ?, strftime('%s','now'));",
+		key, info, nick, room)
 	return err
 }
 
@@ -131,7 +118,7 @@ func sqliteFactoidSet(key string, info string, author string, room string) error
 
 // Connects to a SQlite database.
 func sqliteConnect(sqlitefile string) error {
-	dsn := fmt.Sprintf("%v?parseTime=True", sqlitefile)
+	dsn := fmt.Sprintf("%v", sqlitefile)
 	sqlite, err := sql.Open("sqlite3", dsn)
 	if err != nil {
 		sqliteCon = nil
