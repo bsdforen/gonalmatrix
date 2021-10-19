@@ -43,6 +43,9 @@ func matrixPrintError(evt *event.Event, err error) {
 func matrixHandleMessageEvent(source mautrix.EventSource, evt *event.Event) {
 	message := evt.Content.AsMessage().Body
 
+	// Mark the event as read.
+	matrixClient.MarkRead(evt.RoomID, evt.ID)
+
 	// Log everything that has a body.
 	if len(message) != 0 {
 		matrixLogMessageEvent(evt, message)
@@ -238,9 +241,12 @@ func matrixStartSyncer() chan error {
 	var oei mautrix.OldEventIgnorer
 	oei.Register(syncer)
 
-	// And start the syncer.
+	// Start the syncer.
 	ch := make(chan error)
 	go matrixSyncerWrapper(ch)
+
+	// Set our presence to online.
+	matrixClient.SetPresence(event.PresenceOnline)
 	return ch
 }
 
