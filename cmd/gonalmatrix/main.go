@@ -12,7 +12,7 @@ import (
 
 // Version number.
 const VERSION_MAJOR int = 1
-const VERSION_MINOR int = 0
+const VERSION_MINOR int = 1
 const VERSION_PATCH int = 0
 
 // ----
