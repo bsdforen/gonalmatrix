@@ -175,7 +175,7 @@ func matrixHandleMessageEvent(source mautrix.EventSource, evt *event.Event) {
 	// !version -> Answer with the version numer.
 	if strings.HasPrefix(strings.ToLower(message), "!version") {
 		matrixPrintAction(evt, "!version")
-		version := fmt.Sprintf("gonalmatrix v%v.%v.%v, © 2021 BSDForen.de", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH)
+		version := fmt.Sprintf("gonalmatrix v%v.%v.%v, © 2021, 2023 BSDForen.de", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH)
 		matrixClient.SendText(evt.RoomID, version)
 	}
 }
