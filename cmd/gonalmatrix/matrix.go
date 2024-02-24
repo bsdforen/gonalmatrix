@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log"
@@ -40,11 +41,11 @@ func matrixPrintError(evt *event.Event, err error) {
 }
 
 // Handles message events.
-func matrixHandleMessageEvent(source mautrix.EventSource, evt *event.Event) {
+func matrixHandleMessageEvent(ctx context.Context, evt *event.Event) {
 	message := evt.Content.AsMessage().Body
 
 	// Mark the event as read.
-	matrixClient.MarkRead(evt.RoomID, evt.ID)
+	matrixClient.MarkRead(ctx, evt.RoomID, evt.ID)
 
 	// Log everything that has a body.
 	if len(message) != 0 {
@@ -58,7 +59,7 @@ func matrixHandleMessageEvent(source mautrix.EventSource, evt *event.Event) {
 		if len(split) == 1 {
 			// No argument -> error string.
 			matrixPrintAction(evt, "!forget")
-			matrixClient.SendText(evt.RoomID, "try: '!forget foo = bar' or '!forget foo'")
+			matrixClient.SendText(ctx, evt.RoomID, "try: '!forget foo = bar' or '!forget foo'")
 		} else if len(split) == 2 {
 			// Argument -> Either remove part or everything.
 			keyvalue := strings.SplitN(split[1], "=", 2)
@@ -73,7 +74,7 @@ func matrixHandleMessageEvent(source mautrix.EventSource, evt *event.Event) {
 				if err != nil {
 					matrixPrintError(evt, err)
 				} else {
-					matrixClient.SendText(evt.RoomID, fmt.Sprintf("forgot everything i knew about '%v'", key))
+					matrixClient.SendText(ctx, evt.RoomID, fmt.Sprintf("forgot everything i knew about '%v'", key))
 				}
 			} else if len(keyvalue) == 2 {
 				// User has given a key and a value -> remove part.
@@ -84,13 +85,13 @@ func matrixHandleMessageEvent(source mautrix.EventSource, evt *event.Event) {
 
 				// The key and the value must not be empty.
 				if len(key) == 0 || len(value) == 0 {
-					matrixClient.SendText(evt.RoomID, "try: '!forget foo = bar' or '!forget foo'")
+					matrixClient.SendText(ctx, evt.RoomID, "try: '!forget foo = bar' or '!forget foo'")
 				} else {
 					err := sqliteFactoidForgetValue(key, value)
 					if err != nil {
 						matrixPrintError(evt, err)
 					} else {
-						matrixClient.SendText(evt.RoomID, fmt.Sprintf("forgot %v = %v", key, value))
+						matrixClient.SendText(ctx, evt.RoomID, fmt.Sprintf("forgot %v = %v", key, value))
 					}
 				}
 			}
@@ -109,7 +110,7 @@ func matrixHandleMessageEvent(source mautrix.EventSource, evt *event.Event) {
 			if err != nil {
 				matrixPrintError(evt, err)
 			} else {
-				matrixClient.SendText(evt.RoomID, fact)
+				matrixClient.SendText(ctx, evt.RoomID, fact)
 			}
 		} else if len(split) == 2 {
 			// Argument -> all factoids with that key.
@@ -121,7 +122,7 @@ func matrixHandleMessageEvent(source mautrix.EventSource, evt *event.Event) {
 			if err != nil {
 				matrixPrintError(evt, err)
 			} else {
-				matrixClient.SendText(evt.RoomID, fact)
+				matrixClient.SendText(ctx, evt.RoomID, fact)
 			}
 		}
 	}
@@ -133,7 +134,7 @@ func matrixHandleMessageEvent(source mautrix.EventSource, evt *event.Event) {
 		if len(split) == 1 {
 			// No argument -> error string.
 			matrixPrintAction(evt, "!learn")
-			matrixClient.SendText(evt.RoomID, "try: '!learn foo = bar'")
+			matrixClient.SendText(ctx, evt.RoomID, "try: '!learn foo = bar'")
 		} else if len(split) == 2 {
 			// Argument -> save that factoid.
 			keyvalue := strings.SplitN(split[1], "=", 2)
@@ -143,7 +144,7 @@ func matrixHandleMessageEvent(source mautrix.EventSource, evt *event.Event) {
 				key := strings.Trim(keyvalue[0], " ")
 				key = strings.ToLower(key)
 				matrixPrintAction(evt, fmt.Sprintf("!learn %v", key))
-				matrixClient.SendText(evt.RoomID, "try: '!learn foo = bar'")
+				matrixClient.SendText(ctx, evt.RoomID, "try: '!learn foo = bar'")
 			} else if len(keyvalue) == 2 {
 				// User has given a key and a value.
 				key := strings.Trim(keyvalue[0], " ")
@@ -153,13 +154,13 @@ func matrixHandleMessageEvent(source mautrix.EventSource, evt *event.Event) {
 
 				// The key and the value must not be empty.
 				if len(key) == 0 || len(value) == 0 {
-					matrixClient.SendText(evt.RoomID, "try: '!learn foo = bar'")
+					matrixClient.SendText(ctx, evt.RoomID, "try: '!learn foo = bar'")
 				} else {
 					err := sqliteFactoidSet(key, value, evt.Sender.String(), evt.RoomID.String())
 					if err != nil {
 						matrixPrintError(evt, err)
 					} else {
-						matrixClient.SendText(evt.RoomID, fmt.Sprintf("Okay, learned %v = %v", key, value))
+						matrixClient.SendText(ctx, evt.RoomID, fmt.Sprintf("Okay, learned %v = %v", key, value))
 					}
 				}
 			}
@@ -169,14 +170,14 @@ func matrixHandleMessageEvent(source mautrix.EventSource, evt *event.Event) {
 	// !ping -> Anwer with 'pong!'.
 	if strings.HasPrefix(strings.ToLower(message), "!ping") {
 		matrixPrintAction(evt, "!ping")
-		matrixClient.SendText(evt.RoomID, "pong!")
+		matrixClient.SendText(ctx, evt.RoomID, "pong!")
 	}
 
 	// !version -> Answer with the version numer.
 	if strings.HasPrefix(strings.ToLower(message), "!version") {
 		matrixPrintAction(evt, "!version")
 		version := fmt.Sprintf("gonalmatrix v%v.%v.%v, © 2021, 2023 BSDForen.de", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH)
-		matrixClient.SendText(evt.RoomID, version)
+		matrixClient.SendText(ctx, evt.RoomID, version)
 	}
 }
 
@@ -192,20 +193,20 @@ func matrixSyncerWrapper(ch chan error) {
 // ----
 
 // Authenticate against the matrix server.
-func matrixAuthenticate(user string, passwd string) error {
+func matrixAuthenticate(ctx context.Context, user string, passwd string) error {
 	req := mautrix.ReqLogin{
 		Type:             "m.login.password",
 		Identifier:       mautrix.UserIdentifier{Type: mautrix.IdentifierTypeUser, User: user},
 		Password:         passwd,
 		StoreCredentials: true,
 	}
-	_, err := matrixClient.Login(&req)
+	_, err := matrixClient.Login(ctx, &req)
 	return err
 }
 
 // Deauthenticate from the matrix server.
-func matrixDeauthenticate() error {
-	_, err := matrixClient.Logout()
+func matrixDeauthenticate(ctx context.Context) error {
+	_, err := matrixClient.Logout(ctx)
 	if err != nil {
 		return err
 	}
@@ -231,7 +232,7 @@ func matrixSetupLogger(handle io.Writer) {
 
 // Starts the syncer as goroutine.
 // Returns an error channel to it.
-func matrixStartSyncer() chan error {
+func matrixStartSyncer(ctx context.Context) chan error {
 	// Create syncer and register event handlers.
 	syncer := matrixClient.Syncer.(*mautrix.DefaultSyncer)
 	syncer.OnEventType(event.EventMessage, matrixHandleMessageEvent)
@@ -246,7 +247,7 @@ func matrixStartSyncer() chan error {
 	go matrixSyncerWrapper(ch)
 
 	// Set our presence to online.
-	matrixClient.SetPresence(event.PresenceOnline)
+	matrixClient.SetPresence(ctx, event.PresenceOnline)
 	return ch
 }
 

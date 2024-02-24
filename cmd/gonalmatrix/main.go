@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -121,6 +122,9 @@ func main() {
 	fmt.Printf("[okay]\n")
 	defer sqliteDisconnect()
 
+	// Context to trace global calls through gomautrix.
+	ctx := context.Background()
+
 	// Connect to the server...
 	fmt.Printf("Connecting to %v: ", homeserver)
 	err = matrixConnect(homeserver)
@@ -132,17 +136,17 @@ func main() {
 
 	// ...authenticate...
 	fmt.Printf("Authenticating as %v: ", user)
-	err = matrixAuthenticate(user, passwd)
+	err = matrixAuthenticate(ctx, user, passwd)
 	if err != nil {
 		fmt.Printf("[failed]\n")
 		varpanic("%v", err)
 	}
 	fmt.Printf("[okay]\n")
-	defer matrixDeauthenticate()
+	defer matrixDeauthenticate(ctx)
 
 	// ...start the event syncer...
 	fmt.Printf("Starting syncer: ")
-	ch := matrixStartSyncer()
+	ch := matrixStartSyncer(ctx)
 	fmt.Printf("[okay]\n")
 	defer close(ch)
 
