@@ -239,8 +239,7 @@ func matrixStartSyncer(ctx context.Context) chan error {
 
 	// Add handler to ignore old events from
 	// before the bot joined the rooms.
-	var oei mautrix.OldEventIgnorer
-	oei.Register(syncer)
+	syncer.OnSync(matrixClient.DontProcessOldEvents)
 
 	// Start the syncer.
 	ch := make(chan error)
